@@ -24,6 +24,11 @@
   <Folder Name="/Documentation/Plans/initial-implementation-2026-11-01-(not-started)/">
     <File Path="Documentation/Plans/initial-implementation-2026-11-01-(not-started)/main.md" />
     <File Path="Documentation/Plans/initial-implementation-2026-11-01-(not-started)/open-questions.md" />
+    <File Path="Documentation/Plans/initial-implementation-2026-11-01-(not-started)/01-technical-contract.md" />
+    <File Path="Documentation/Plans/initial-implementation-2026-11-01-(not-started)/02-configuration-and-process-start.md" />
+    <File Path="Documentation/Plans/initial-implementation-2026-11-01-(not-started)/03-endpoint-and-json.md" />
+    <File Path="Documentation/Plans/initial-implementation-2026-11-01-(not-started)/04-compatibility-and-acceptance.md" />
+    <File Path="Documentation/Plans/initial-implementation-2026-11-01-(not-started)/05-dll-distribution.md" />
   </Folder>
   <Project Path="UptimeHarbor.HealthEndpoint/UptimeHarbor.HealthEndpoint.csproj" />
 </Solution>
