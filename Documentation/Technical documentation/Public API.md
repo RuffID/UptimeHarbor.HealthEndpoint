@@ -1,6 +1,6 @@
 # Публичный API
 
-**Состояние:** options и оба overload Add реализованы в этапах 01/02. Map и HTTP endpoint пока отсутствуют. Примеры с Map описывают будущий этап 03 и целиком пока не компилируются.
+**Состояние:** options, оба overload Add, Map и HTTP endpoint реализованы. Изолированные проверки пройдены на Windows x64 / .NET 10 / ASP.NET Core 10; обязательная внешняя приёмка и DLL-поставка не завершены.
 
 ## Согласованные точки подключения
 
@@ -32,7 +32,7 @@ app.MapUptimeHarborHealth();
 | --- | --- |
 | `AddUptimeHarborHealth` | Расширение `IServiceCollection`, возвращающее `IServiceCollection`; вариант без аргументов и вариант с делегатом настройки options. |
 | Options | Реализованный `UptimeHarbor.HealthEndpoint.UptimeHarborHealthOptions`: `string? Name`, `string Path` со значением `/health`. |
-| `MapUptimeHarborHealth` | Будущее расширение `IEndpointRouteBuilder`, возвращающее `IEndpointConventionBuilder`; путь берётся из неизменяемого снимка валидированной конфигурации. Не реализовано. |
+| `MapUptimeHarborHealth` | Расширение `IEndpointRouteBuilder`, возвращающее `IEndpointConventionBuilder`; путь берётся из неизменяемого снимка валидированной конфигурации. |
 
 Реализованные сигнатуры находятся в `Microsoft.Extensions.DependencyInjection`, класс `UptimeHarborHealthServiceCollectionExtensions`:
 
@@ -43,20 +43,20 @@ public static IServiceCollection AddUptimeHarborHealth(
     Action<UptimeHarborHealthOptions> configureOptions);
 ```
 
-Будущая сигнатура этапа 03 находится в namespace `Microsoft.AspNetCore.Builder`, класс `UptimeHarborHealthEndpointRouteBuilderExtensions`:
+Реализованная сигнатура Map находится в namespace `Microsoft.AspNetCore.Builder`, класс `UptimeHarborHealthEndpointRouteBuilderExtensions`:
 
 ```csharp
 public static IEndpointConventionBuilder MapUptimeHarborHealth(
     this IEndpointRouteBuilder endpoints);
 ```
 
-Это описание сигнатур, не отдельный исходный файл. Builder mapping предусматривает стандартные conventions; гарантии anonymous и фиксированного контракта не должны незаметно разрушаться внешними conventions. Map без Add должен давать понятную ошибку, а не скрыто регистрировать зависимости; эта проверка относится к ещё не реализованному Map.
+Это описание сигнатур, не отдельный исходный файл. Builder поддерживает стандартные conventions. Завершающая convention библиотеки добавляет anonymous metadata и запрет output cache после обычных conventions. Произвольные дополнительные финальные conventions/замена RequestDelegate требуют проверки приложения. Map без Add выбрасывает InvalidOperationException с безопасным сообщением `Call AddUptimeHarborHealth before MapUptimeHarborHealth.`, не регистрируя зависимости; null builder вызывает ArgumentNullException.
 
-Add возвращает исходный IServiceCollection. Null services и null делегат явного overload вызывают ArgumentNullException. Значения Name/Path проверяются через IValidateOptions и ValidateOnStart; ошибки сообщаются OptionsValidationException без исходных значений. Нормализованные имя/путь и время процесса фиксируются во внутреннем singleton на StartingAsync. Options не изменяются нормализацией и не предназначены для runtime reload.
+Add возвращает исходный IServiceCollection. Null services и null делегат явного overload вызывают ArgumentNullException. Значения Name/Path проверяются через IValidateOptions и ValidateOnStart; ошибки сообщаются OptionsValidationException без исходных значений. Нормализованные имя/путь и время процесса фиксируются во внутреннем singleton при Map либо не позднее StartingAsync. Options не изменяются нормализацией и не предназначены для runtime reload.
 
 Согласован однократный вызов Add и однократный Map, причём Add должен предшествовать Map. Повторные вызовы — ответственность разработчика приложения; специальной проверки библиотека не выполняет. Конфликты с маршрутами приложения также не обнаруживаются. Для выбора свободного адреса служит Path.
 
-Способ подключения маршрута закреплён как endpoint routing без обязательного MVC controller. Map ещё не создан; один Add не публикует endpoint. Внутренний запрет Minimal API в Web-проекте исходного UptimeHarbor здесь не действует.
+Маршрут подключается через endpoint routing без обязательного MVC controller. Один Add не публикует endpoint. Внутренний запрет Minimal API в Web-проекте исходного UptimeHarbor здесь не действует.
 
 ## HTTP-контракт библиотеки
 
@@ -66,20 +66,20 @@ Add возвращает исходный IServiceCollection. Null services и n
 | Путь | `/health` по умолчанию либо валидированный пользовательский путь. |
 | Статус и тип | `200 OK`, `application/json` (допустимо уточнение charset). |
 | `name` | JSON-строка, имя приложения по правилам [настроек](Configuration%20and%20validation.md). |
-| `startedAtUtc` | JSON-строка с временем запуска текущего процесса в UTC; `Z` или `+00:00` принимаются существующим checker. |
-| Кеш | Ответ не кешируется; проектируемый заголовок — `Cache-Control: no-store`, с учётом output/response cache приложения. |
-| Данные | Только публичные имя и время; без секретов, параметров подключений и подробностей исключений. |
+| `startedAtUtc` | JSON-строка с временем запуска текущего процесса в UTC с `+00:00`; checker принимает также `Z`. |
+| Кеш | `Cache-Control: no-store` для response cache; отдельная IOutputCachePolicy запрещает output cache lookup/storage/locking. |
+| Данные | Ровно два публичных поля name/startedAtUtc; без Path, секретов, параметров подключений и подробностей исключений. |
 
 ```json
 {
   "name": "orders-api",
-  "startedAtUtc": "2026-11-01T03:20:00Z"
+  "startedAtUtc": "2026-11-01T03:20:00+00:00"
 }
 ```
 
-Форма ответа не должна зависеть от глобального snake_case/PascalCase, настроек MVC или пользовательского converter даты. Согласованы отдельные настройки System.Text.Json только для endpoint, без наследования или изменения настроек приложения. Они должны сохранять точные поля и явное UTC-время. Проверка потребителя регистрозависима, envelope вида `{ "data": ... }` не подходит. Реализация сериализации пока отсутствует.
+Форма ответа не зависит от глобального snake_case/PascalCase, настроек MVC или пользовательского converter даты. Используются отдельные read-only JsonSerializerOptions библиотеки и JsonPropertyName в модели, без наследования или изменения настроек приложения. Изоляция и сохранение обычного ответа приложения подтверждены тестами. Проверка потребителя регистрозависима, envelope вида `{ "data": ... }` не подходит.
 
-Для других HTTP-методов отдельного продуктового контракта пока нет; будущая реализация должна явно проверить и документировать стандартное поведение выбранного mapping. Библиотека подтверждает только способность приложения отвечать; проверки готовности БД и других зависимостей не поддерживаются в согласованном объёме.
+Для других HTTP-методов отдельного продуктового контракта нет: MapGet с RequestDelegate регистрирует только GET. Без fallback authorization HEAD/POST/PUT дают стандартные 405 и Allow: GET; при fallback policy неподходящий метод может получить отказ авторизации приложения. Библиотека подтверждает только способность приложения отвечать; проверки готовности БД и других зависимостей не поддерживаются.
 
 ## Ошибки и совместимость
 

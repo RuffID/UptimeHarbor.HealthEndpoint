@@ -14,4 +14,15 @@
     <PackageReference Include="xunit.v3" Version="4.0.2" PrivateAssets="all" />
     <ProjectReference Include="../../UptimeHarbor.HealthEndpoint/UptimeHarbor.HealthEndpoint.csproj" />
   </ItemGroup>
+  <!-- Только тестовая компиляция фактического checker, без сборки или изменения соседнего репозитория. -->
+  <ItemGroup>
+    <Compile Include="../../../uptime-harbor/UptimeHarbor.Infrastructure/Monitoring/HttpMonitoringEndpointChecker.cs" Link="ConsumerContract/HttpMonitoringEndpointChecker.cs" />
+    <Compile Include="../../../uptime-harbor/UptimeHarbor.Application/Monitoring/IServerEndpointChecker.cs" Link="ConsumerContract/IServerEndpointChecker.cs" />
+    <Compile Include="../../../uptime-harbor/UptimeHarbor.Application/Monitoring/IContainerEndpointChecker.cs" Link="ConsumerContract/IContainerEndpointChecker.cs" />
+    <Compile Include="../../../uptime-harbor/UptimeHarbor.Application/Monitoring/MonitoringOptions.cs" Link="ConsumerContract/MonitoringOptions.cs" />
+    <Compile Include="../../../uptime-harbor/UptimeHarbor.Application/Monitoring/EndpointCheckFailureKind.cs" Link="ConsumerContract/EndpointCheckFailureKind.cs" />
+    <Compile Include="../../../uptime-harbor/UptimeHarbor.Application/Monitoring/Models/ServerEndpointCheckResult.cs" Link="ConsumerContract/ServerEndpointCheckResult.cs" />
+    <Compile Include="../../../uptime-harbor/UptimeHarbor.Application/Monitoring/Models/ContainerEndpointCheckResult.cs" Link="ConsumerContract/ContainerEndpointCheckResult.cs" />
+    <Compile Include="../../../uptime-harbor/UptimeHarbor.Domain/ModelConstraints.cs" Link="ConsumerContract/ModelConstraints.cs" />
+  </ItemGroup>
 </Project>

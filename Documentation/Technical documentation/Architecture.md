@@ -2,7 +2,7 @@
 
 ## Фактическое состояние
 
-На 2026-11-01 реализованы этапы 01/02. Проект `UptimeHarbor.HealthEndpoint` — SDK-style class library на `net10.0` с framework reference `Microsoft.AspNetCore.App`. Существуют публичные options и DI-расширение, внутренние валидатор, нормализатор, singleton-снимок процесса и startup lifecycle service. Изолированный тестовый проект находится в `tests/UptimeHarbor.HealthEndpoint.Tests`. Общий статус — `in-progress`; endpoint, Map, сериализация ответа и samples отсутствуют.
+На 2026-11-01 реализованы этапы 01–03 и изолированный объём этапа 04. Проект `UptimeHarbor.HealthEndpoint` — SDK-style class library на `net10.0` с framework reference `Microsoft.AspNetCore.App`. Реализованы настройки, снимок процесса, Add/Map и анонимный GET с фиксированным JSON и запретом кеша. Изолированный тестовый проект находится в `tests/UptimeHarbor.HealthEndpoint.Tests`. Общий статус — `in-progress`: этап 04 ожидает обязательной внешней приёмки, этап 05 не начат. Samples и проверочного DLL-потребителя нет.
 
 TargetFramework соответствует текущим `UptimeHarbor.Web.csproj` и `UptimeHarbor.Infrastructure.csproj` и согласованной минимальной платформе .NET 10 / ASP.NET Core 10. Версии 8 и 9 не поддерживаются; более новые версии требуют отдельного подтверждения совместимости. Сборка и изолированные тесты подтверждены на Windows x64/.NET 10. Зависимостей production-проекта на сам UptimeHarbor и сторонних NuGet-пакетов нет. Тестовый xUnit не входит в поставку. Согласованная поставка — DLL с прямой ссылкой из `libs` приложения, без NuGet и ProjectReference.
 
@@ -27,7 +27,7 @@ TargetFramework соответствует текущим `UptimeHarbor.Web.cspr
 | Время | Строка оканчивается на `Z` (проверка окончания регистронезависима) либо `+00:00`, успешно разбирается `DateTimeOffset.TryParse` с InvariantCulture/RoundtripKind, имеет offset 0 и не позже времени завершения проверки. |
 | Отказ | Отсутствие зоны, ненулевое смещение, время в будущем и неверный тип поля отвергаются. Сетевые ошибки, timeout, неверный JSON и слишком большое тело означают неудачную проверку. |
 
-Примеры принимаемого времени: `2026-11-01T03:20:00Z`, `2026-11-01T03:20:00+00:00`, если они не позже часов проверяющего узла. Канонический формат будущего ответа библиотеки следует выбрать в UTC с явным окончанием; не нужно воспроизводить всю допустимую грамматику TryParse.
+Примеры принимаемого времени: `2026-11-01T03:20:00Z`, `2026-11-01T03:20:00+00:00`, если они не позже часов проверяющего узла. Библиотека сериализует DateTimeOffset с нулевым offset и явным окончанием +00:00; всю допустимую грамматику TryParse она не воспроизводит.
 
 Checker общий для server/container. Для этой библиотеки согласовано время процесса приложения, соответствующее наблюдению приложения/контейнера; семантику времени загрузки ОС из server-инструкции сюда не переносить. Часы приложения и наблюдателя должны быть синхронизированы, библиотека не подменяет время запуска ради обхода проверки будущего времени.
 
@@ -48,11 +48,11 @@ Checker общий для server/container. Для этой библиотеки
 
 Нормализованные Name и Path сохраняются в снимке; исходные публичные options не изменяются. Изменение options после материализации снимка не меняет будущий ответ. Тестам открыт internal через InternalsVisibleTo; снимок не является частью публичного API DLL.
 
-## Проектируемое подключение HTTP endpoint
+## Подключение HTTP endpoint
 
-Будущий `MapUptimeHarborHealth` размещается в namespace `Microsoft.AspNetCore.Builder`, принимает `IEndpointRouteBuilder` и возвращает `IEndpointConventionBuilder`. Он будет получать готовый снимок из DI, подключать GET и использовать отдельные настройки System.Text.Json для фиксированного ответа. Точные публичные сигнатуры закреплены в [Public API](Public%20API.md); реализации Map пока нет.
+`MapUptimeHarborHealth` размещается в namespace `Microsoft.AspNetCore.Builder`, принимает `IEndpointRouteBuilder` и возвращает `IEndpointConventionBuilder`. При mapping разрешает singleton-снимок из DI и замыкает внутреннюю неизменяемую модель ответа. Map без Add выдаёт InvalidOperationException с инструкцией вызвать Add, без регистрации сервисов. RequestDelegate читает готовую модель и не обращается к options или Process на запросе. Точные сигнатуры — в [Public API](Public%20API.md).
 
-Маршрут проектируется через endpoint routing без обязательного MVC controller и вызова `AddControllers`. Внутренняя архитектура UptimeHarbor не определяет этот выбор.
+Маршрут подключается через endpoint routing без MVC controller и AddControllers. PathString.FromUriComponent согласует настроенный путь с декодированным Request.Path; исходный Path в снимке не меняется. Проверены PathBase и авторизованная route group. Внутренняя архитектура UptimeHarbor не определяет выбор routing.
 
 Add и Map вызываются приложением по одному разу, Add предшествует Map. Специальной защиты от повторного подключения и обнаружения конфликтов маршрутов библиотека не создаёт. Разработчик приложения выбирает свободный Path; библиотека не заменяет чужие endpoints и не выбирает другой путь автоматически. Подробности — в [конфигурации](Configuration%20and%20validation.md#route-conflicts).
 
@@ -62,15 +62,15 @@ Options pattern уже используется для настройки; пр�
 
 `UptimeHarborHealthState` один раз получает фактическое время старта текущего процесса через `Process.GetCurrentProcess().StartTime`, переводит в UTC и сохраняет в get-only свойстве StartedAtUtc. Временный Process освобождается через using; библиотека не владеет жизненным циклом процесса или HTTP-хоста.
 
-Чтение происходит при материализации singleton, принудительно на StartingAsync, до обслуживания запросов. Даже при поздней инициализации возвращается начало процесса, а не UtcNow регистрации. Два DI container в одном тестовом процессе дают одинаковое StartedAtUtc; повторное разрешение из одного container возвращает тот же снимок. Реальный перезапуск приложения пока не проверялся.
+Чтение происходит при материализации singleton: обычно во время Map, а при отсутствии Map — принудительно на StartingAsync, до обслуживания запросов. Даже при поздней инициализации возвращается начало процесса, а не UtcNow регистрации. Два DI container в одном тестовом процессе дают одинаковое StartedAtUtc; повторное разрешение из одного container возвращает тот же снимок. Реальный перезапуск приложения пока не проверялся.
 
-Win32Exception, NotSupportedException и InvalidOperationException чтения старта преобразуются в понятную InvalidOperationException без fallback на текущее время. Время процесса подтверждено на Windows x64/.NET 10; другие ОС и отказ доступа к Process не воспроизводились. Будущий endpoint должен читать только готовый снимок.
+Win32Exception, NotSupportedException и InvalidOperationException чтения старта преобразуются в понятную InvalidOperationException без fallback на текущее время. Время процесса подтверждено на Windows x64/.NET 10; другие ОС и отказ доступа к Process не воспроизводились. Endpoint читает только готовый снимок.
 
 ## HTTP, авторизация и кеширование
 
-Обязательны анонимный GET, `200 OK`, `application/json`, точные поля и UTC. Предлагается явная anonymous metadata для стандартной ASP.NET Core authorization, заголовок `Cache-Control: no-store` и исключение endpoint из применяемого response/output caching. Одного атрибута anonymous или заголовка недостаточно для гарантии поведения произвольного middleware и внешнего proxy.
+Анонимный GET возвращает `200 OK`, `application/json; charset=utf-8`, точные поля и UTC. Завершающая convention добавляет AllowAnonymousAttribute и UptimeHarborHealthNoCachePolicy после обычных conventions приложения. Policy запрещает output caching целиком, включая lookup/storage/locking даже при базовой Cache policy; response cache исключается заголовком Cache-Control: no-store. Проверены оба стандартных middleware отдельно и вместе с контрольным кешируемым маршрутом. Произвольные пользовательские middleware, дополнительные финальные conventions и внешний proxy могут вмешиваться в контракт и требуют проверки в приложении.
 
-Для JSON endpoint согласованы отдельные настройки System.Text.Json, независимые от настроек MVC/HTTP JSON приложения. Библиотека не использует и не изменяет глобальные options сериализации; naming policies и converters приложения не должны менять поля или время. Собственные настройки задают точные `name`/`startedAtUtc` и UTC с явным окончанием `Z` или `+00:00`. Этот способ выбран, но ещё не реализован и требует контрактных тестов.
+JSON записывается через WriteAsJsonAsync с собственными read-only JsonSerializerOptions(JsonSerializerDefaults.General). Внутренняя модель в Models закрепляет только name/startedAtUtc через JsonPropertyName; Path, options и исключения не сериализуются. DateTimeOffset сохраняет +00:00. Библиотека не читает и не меняет MVC/HTTP JSON options. Тест с глобальной naming policy и converter даты подтверждает независимость health и сохранение настроек обычного JSON-ответа приложения.
 
 Не логировать каждый polling-запрос на Information. Для ошибок запуска использовать безопасную диагностику настройки без полного дампа конфигурации и секретов; сообщения логов на английском. Не добавлять отдельный аудит или логировать успех запуска до завершения валидации. Детали исключений не отдавать публично.
 
@@ -78,6 +78,8 @@ Win32Exception, NotSupportedException и InvalidOperationException чтения 
 
 Порты, listeners, TLS, reverse proxy, firewall, свободный маршрут, однократное подключение, маршрутизация к конкретной реплике и порядок собственных middleware принадлежат приложению. Библиотека не делает исходящих запросов, не опрашивает Docker и не обращается к БД. Согласован только ответ самого приложения; readiness-проверки зависимостей в эту версию не входят.
 
-Выполнены restore из локального кеша, отдельная сборка библиотеки и тестового проекта с нулём предупреждений/ошибок и 57 успешных изолированных тестов через Microsoft Testing Platform (ошибок и пропусков 0). Тесты вручную вызывают IStartupValidator/StartingAsync без запуска Generic Host или WebApplication. Телеметрия runner отключена module initializer тестового проекта.
+Выполнены restore из локального кеша, отдельные compile-check библиотеки и тестового проекта с нулём предупреждений/ошибок и 93 успешных изолированных теста через Microsoft Testing Platform (упавших и пропущенных 0). Тесты вызывают IStartupValidator/StartingAsync и настоящие middleware через ApplicationBuilder/DefaultHttpContext без Generic Host или WebApplication. Телеметрия runner отключена module initializer и переменной окружения запуска.
 
-HTTP endpoint, реальный запуск хоста, Linux, nginx, внешняя сеть, реальный перезапуск процесса и подключение DLL в другое приложение не проверялись. Исходный UptimeHarbor оставлен без изменений.
+Тестовая сборка компилирует восемь linked source файлов фактического checker и его чистых контрактов из соседнего uptime-harbor. Полученный от health payload принимается server/container checker через подставной HttpMessageHandler. Проверены оба UTC-окончания, отрицательные контракты и граница 64 KiB с объявленной длиной и без неё. Тестовой сборке нужны эти исходники; production-проект от них не зависит. Исходный UptimeHarbor не собирался и не изменялся.
+
+Реальный HTTP transport, pipeline целевого приложения, Linux, nginx/TLS, внешняя сеть, реальный перезапуск процесса и подключение DLL в другое приложение не проверялись. Обязательная внешняя приёмка этапа 04 остаётся открытой; этап 05 не начат. Список и условие продолжения — в [этапе 04](../Plans/initial-implementation-2026-11-01-(in-progress)/04-compatibility-and-acceptance.md#результат).
