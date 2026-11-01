@@ -1,0 +1,29 @@
+<Solution>
+  <Folder Name="/Solution items/">
+    <File Path="README.md" />
+    <File Path="AGENTS.md" />
+    <File Path=".gitignore" />
+  </Folder>
+  <Folder Name="/Documentation/">
+    <File Path="Documentation/README.md" />
+  </Folder>
+  <Folder Name="/Documentation/Business logic/">
+    <File Path="Documentation/Business logic/README.md" />
+    <File Path="Documentation/Business logic/Business requirements.md" />
+  </Folder>
+  <Folder Name="/Documentation/Technical documentation/">
+    <File Path="Documentation/Technical documentation/README.md" />
+    <File Path="Documentation/Technical documentation/Architecture.md" />
+    <File Path="Documentation/Technical documentation/Public API.md" />
+    <File Path="Documentation/Technical documentation/Configuration and validation.md" />
+    <File Path="Documentation/Technical documentation/Consumer integration.md" />
+  </Folder>
+  <Folder Name="/Documentation/Plans/">
+    <File Path="Documentation/Plans/README.md" />
+  </Folder>
+  <Folder Name="/Documentation/Plans/initial-implementation-2026-11-01-(not-started)/">
+    <File Path="Documentation/Plans/initial-implementation-2026-11-01-(not-started)/main.md" />
+    <File Path="Documentation/Plans/initial-implementation-2026-11-01-(not-started)/open-questions.md" />
+  </Folder>
+  <Project Path="UptimeHarbor.HealthEndpoint/UptimeHarbor.HealthEndpoint.csproj" />
+</Solution>
