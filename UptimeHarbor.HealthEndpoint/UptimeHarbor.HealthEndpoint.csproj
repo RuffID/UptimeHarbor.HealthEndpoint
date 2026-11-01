@@ -7,5 +7,6 @@
   </PropertyGroup>
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <InternalsVisibleTo Include="UptimeHarbor.HealthEndpoint.Tests" />
   </ItemGroup>
 </Project>

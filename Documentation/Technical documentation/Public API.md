@@ -1,6 +1,6 @@
 # Публичный API
 
-**Состояние:** проектируемый API; реализация и публичные типы отсутствуют. Примеры показывают ожидаемое будущее использование, а не работающий код текущего скелета.
+**Состояние:** options и оба overload Add реализованы в этапах 01/02. Map и HTTP endpoint пока отсутствуют. Примеры с Map описывают будущий этап 03 и целиком пока не компилируются.
 
 ## Согласованные точки подключения
 
@@ -26,19 +26,37 @@ app.MapUptimeHarborHealth();
 
 Регистрация выполняется до `builder.Build()`, mapping — после создания `app` и до запуска приложения. Примеры не заменяют существующий Program.cs и не требуют второго HTTP-хоста.
 
-## Предлагаемая форма API
+## Закреплённая форма API
 
-| Элемент | Проектируемый контракт |
+| Элемент | Контракт и состояние |
 | --- | --- |
 | `AddUptimeHarborHealth` | Расширение `IServiceCollection`, возвращающее `IServiceCollection`; вариант без аргументов и вариант с делегатом настройки options. |
-| Options | Предполагаемое имя типа `UptimeHarborHealthOptions`; необязательный `string? Name`, путь `string Path` со значением `/health`. Тип ещё не создан. |
-| `MapUptimeHarborHealth` | Отдельное расширение маршрутизации; предлагаемый receiver — `IEndpointRouteBuilder`, источник пути — валидированные options. |
+| Options | Реализованный `UptimeHarbor.HealthEndpoint.UptimeHarborHealthOptions`: `string? Name`, `string Path` со значением `/health`. |
+| `MapUptimeHarborHealth` | Будущее расширение `IEndpointRouteBuilder`, возвращающее `IEndpointConventionBuilder`; путь берётся из неизменяемого снимка валидированной конфигурации. Не реализовано. |
 
-Точные публичные namespace и тип возврата mapping определяются при техническом проектировании. Если возвращается builder endpoint для стандартных conventions, гарантии anonymous и фиксированного контракта не должны незаметно разрушаться внешними conventions. Отсутствие регистрации должно давать понятную ошибку, а не скрыто регистрировать другой набор зависимостей.
+Реализованные сигнатуры находятся в `Microsoft.Extensions.DependencyInjection`, класс `UptimeHarborHealthServiceCollectionExtensions`:
+
+```csharp
+public static IServiceCollection AddUptimeHarborHealth(this IServiceCollection services);
+public static IServiceCollection AddUptimeHarborHealth(
+    this IServiceCollection services,
+    Action<UptimeHarborHealthOptions> configureOptions);
+```
+
+Будущая сигнатура этапа 03 находится в namespace `Microsoft.AspNetCore.Builder`, класс `UptimeHarborHealthEndpointRouteBuilderExtensions`:
+
+```csharp
+public static IEndpointConventionBuilder MapUptimeHarborHealth(
+    this IEndpointRouteBuilder endpoints);
+```
+
+Это описание сигнатур, не отдельный исходный файл. Builder mapping предусматривает стандартные conventions; гарантии anonymous и фиксированного контракта не должны незаметно разрушаться внешними conventions. Map без Add должен давать понятную ошибку, а не скрыто регистрировать зависимости; эта проверка относится к ещё не реализованному Map.
+
+Add возвращает исходный IServiceCollection. Null services и null делегат явного overload вызывают ArgumentNullException. Значения Name/Path проверяются через IValidateOptions и ValidateOnStart; ошибки сообщаются OptionsValidationException без исходных значений. Нормализованные имя/путь и время процесса фиксируются во внутреннем singleton на StartingAsync. Options не изменяются нормализацией и не предназначены для runtime reload.
 
 Согласован однократный вызов Add и однократный Map, причём Add должен предшествовать Map. Повторные вызовы — ответственность разработчика приложения; специальной проверки библиотека не выполняет. Конфликты с маршрутами приложения также не обнаруживаются. Для выбора свободного адреса служит Path.
 
-Способ подключения маршрута — проектируемое решение. Наличие `MapUptimeHarborHealth` не означает создания MVC controller. Внутренний запрет Minimal API в Web-проекте исходного UptimeHarbor здесь не действует.
+Способ подключения маршрута закреплён как endpoint routing без обязательного MVC controller. Map ещё не создан; один Add не публикует endpoint. Внутренний запрет Minimal API в Web-проекте исходного UptimeHarbor здесь не действует.
 
 ## HTTP-контракт библиотеки
 

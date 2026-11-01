@@ -21,14 +21,17 @@
   <Folder Name="/Documentation/Plans/">
     <File Path="Documentation/Plans/README.md" />
   </Folder>
-  <Folder Name="/Documentation/Plans/initial-implementation-2026-11-01-(not-started)/">
-    <File Path="Documentation/Plans/initial-implementation-2026-11-01-(not-started)/main.md" />
-    <File Path="Documentation/Plans/initial-implementation-2026-11-01-(not-started)/open-questions.md" />
-    <File Path="Documentation/Plans/initial-implementation-2026-11-01-(not-started)/01-technical-contract.md" />
-    <File Path="Documentation/Plans/initial-implementation-2026-11-01-(not-started)/02-configuration-and-process-start.md" />
-    <File Path="Documentation/Plans/initial-implementation-2026-11-01-(not-started)/03-endpoint-and-json.md" />
-    <File Path="Documentation/Plans/initial-implementation-2026-11-01-(not-started)/04-compatibility-and-acceptance.md" />
-    <File Path="Documentation/Plans/initial-implementation-2026-11-01-(not-started)/05-dll-distribution.md" />
+  <Folder Name="/Documentation/Plans/initial-implementation-2026-11-01-(in-progress)/">
+    <File Path="Documentation/Plans/initial-implementation-2026-11-01-(in-progress)/main.md" />
+    <File Path="Documentation/Plans/initial-implementation-2026-11-01-(in-progress)/open-questions.md" />
+    <File Path="Documentation/Plans/initial-implementation-2026-11-01-(in-progress)/01-technical-contract.md" />
+    <File Path="Documentation/Plans/initial-implementation-2026-11-01-(in-progress)/02-configuration-and-process-start.md" />
+    <File Path="Documentation/Plans/initial-implementation-2026-11-01-(in-progress)/03-endpoint-and-json.md" />
+    <File Path="Documentation/Plans/initial-implementation-2026-11-01-(in-progress)/04-compatibility-and-acceptance.md" />
+    <File Path="Documentation/Plans/initial-implementation-2026-11-01-(in-progress)/05-dll-distribution.md" />
   </Folder>
   <Project Path="UptimeHarbor.HealthEndpoint/UptimeHarbor.HealthEndpoint.csproj" />
+  <Folder Name="/tests/">
+    <Project Path="tests/UptimeHarbor.HealthEndpoint.Tests/UptimeHarbor.HealthEndpoint.Tests.csproj" />
+  </Folder>
 </Solution>
