@@ -19,3 +19,5 @@
 - Не добавлять Information-логи на регистрацию или обычное чтение. Ошибки options выражать через `OptionsValidationException`, без полного дампа настроек.
 
 Тестовая сборка имеет доступ к internal через InternalsVisibleTo; это не делает снимок частью публичного API. Производственные зависимости ограничены framework reference на ASP.NET Core.
+
+Версию DLL задавать явно в csproj через Version, AssemblyVersion и FileVersion. Перед поставкой проверять метаданные именно собранного файла, его assembly references и состав output; тестовые зависимости не переносить в libs потребителя. Правила совместимости и обновления принадлежат Consumer integration в общей технической документации.
